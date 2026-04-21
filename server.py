@@ -92,6 +92,26 @@ async def auth_login(request):
         return web.json_response({"ok":False,"error":"Invalid username or password"})
     return web.json_response({"ok":True,"username":username})
 
+async def get_sounds(request):
+    """Return URLs for sound files (TS.mp3, Send.mp3, Click.mp3) from GitHub."""
+    if not GH_TOKEN or not GH_REPO:
+        return web.json_response({"ts":None,"send":None,"click":None})
+    sounds = {}
+    for name, key in [("TS.mp3","ts"),("Send.mp3","send"),("Click.mp3","click")]:
+        try:
+            r = requests.get(
+                f"https://api.github.com/repos/{GH_REPO}/contents/{name}",
+                headers={"Authorization":f"token {GH_TOKEN}","Accept":"application/vnd.github.v3+json"},
+                timeout=6
+            )
+            if r.status_code == 200:
+                sounds[key] = r.json().get("download_url")
+            else:
+                sounds[key] = None
+        except:
+            sounds[key] = None
+    return web.json_response(sounds)
+
 async def get_abg(request):
     """Return the ABG background URL."""
     url = ABG_CACHE.get("url")
@@ -196,6 +216,7 @@ app.router.add_get("/",                index)
 app.router.add_get("/ws",              ws_handler)
 app.router.add_post("/api/signup",     auth_signup)
 app.router.add_post("/api/login",      auth_login)
+app.router.add_get("/api/sounds",      get_sounds)
 app.router.add_get("/api/abg",         get_abg)
 app.router.add_post("/api/abg/refresh",refresh_abg)
 
