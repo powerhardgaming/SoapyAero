@@ -1114,6 +1114,19 @@ let shareFpsInterval = null;
    THEME
 ════════════════════════════════════════════════════════════ */
 function setTheme(t) {
+  if (t && t.startsWith('user:')) {
+    const idx = parseInt(t.slice(5));
+    applyUserTheme(idx);
+    localStorage.setItem(THEME_KEY, t);
+    document.getElementById('theme-select').value = t;
+    return;
+  }
+  // Remove user theme styles when switching back to built-in
+  const existing = document.getElementById('user-theme-style');
+  if (existing) existing.remove();
+  document.body.style.background = '';
+  document.body.style.backgroundImage = '';
+
   const prev = document.documentElement.getAttribute("data-theme");
   document.documentElement.setAttribute("data-theme", t);
   localStorage.setItem(THEME_KEY, t);
@@ -1126,7 +1139,6 @@ function setTheme(t) {
   if (t === "luna")      initLunaStars();
   if (prev !== t) {
     playTS();
-    // Flash effect
     document.body.style.animation = "themeFlash .3s ease";
     setTimeout(() => document.body.style.animation = "", 300);
   }
@@ -1134,7 +1146,12 @@ function setTheme(t) {
 
 window.addEventListener("DOMContentLoaded", () => {
   const saved = localStorage.getItem(THEME_KEY) || "soapycore2";
-  setTheme(saved);
+  if (saved.startsWith('user:')) {
+    loadUserThemesFromStorage();
+    setTimeout(() => setTheme(saved), 50);
+  } else {
+    setTheme(saved);
+  }
 });
 
 /* ── Aero BG ── */
@@ -2038,38 +2055,8 @@ function applyUserTheme(idx) {
   }
 }
 
-// Hook into setTheme to handle user: prefix
-const _origSetTheme = setTheme;
-function setTheme(t) {
-  if (t && t.startsWith('user:')) {
-    const idx = parseInt(t.slice(5));
-    applyUserTheme(idx);
-    localStorage.setItem('soapy-theme', t);
-    document.getElementById('theme-select').value = t;
-    return;
-  }
-  // Remove user theme styles when switching back to built-in
-  const existing = document.getElementById('user-theme-style');
-  if (existing) existing.remove();
-  document.body.style.background = '';
-  document.body.style.backgroundImage = '';
-  _origSetTheme(t);
-}
-
-// Load on boot
+// Load user themes on boot
 document.addEventListener('DOMContentLoaded', loadUserThemesFromStorage);
-
-// Also restore user theme if it was active
-const _savedTheme = localStorage.getItem('soapy-theme');
-if (_savedTheme && _savedTheme.startsWith('user:')) {
-  document.addEventListener('DOMContentLoaded', () => {
-    loadUserThemesFromStorage();
-    const sel = document.getElementById('theme-select');
-    if (sel) sel.value = _savedTheme;
-    const idx = parseInt(_savedTheme.slice(5));
-    if (!isNaN(idx)) setTimeout(() => applyUserTheme(idx), 100);
-  });
-}
 
 function loadArtemisGalaxy(){
   const bg=document.getElementById("artemis-bg");
